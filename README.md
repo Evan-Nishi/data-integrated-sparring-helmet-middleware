@@ -1,5 +1,4 @@
 # Middleware V1
-bluetooth.py is in .gitignore as it is not tested fully yet
 
 
 # Setup
@@ -16,12 +15,20 @@ ROUND_TIME='180'
 ```
 
 
+
 ## Install dependencies
+This project requires the following libraries installed with pip:
+`bluepy, blue-st-sdk, requests, dotenv`
 
 
 
 
- https://github.com/STMicroelectronics/BlueSTSDK_Python/blob/0a492c94ff056f9d942e35325c6b9a02e6938eb4/blue_st_sdk/features/feature_accelerometer.py#L43
+
+## Optional: add network to pi
+Run `sudo nmtui` and fill in SSID.  Most networks use `WPA2 Personal` for the security, but check just in case.
+
+Run `nmcli connection show` to ensure your network is setup.  
 
 
-
+## Optional: change refresh rate of sensors in firmware
+https://community.st.com/t5/mems-sensors/info-about-sensortile-capabilities/td-p/204776 
