@@ -2,6 +2,8 @@ import requests
 import json
 from dotenv import load_dotenv
 import os
+from impact import impact
+
 
 load_dotenv()
 
@@ -42,7 +44,7 @@ class dbSession:
             return False
     
     #TODO: have content built from params, not passed in whole
-    def add_impact_data(self, content, headers = None):
+    def add_impact_data(self, impact: impact, headers = None):
         if headers is None: 
             headers = self.defaultHeaders
 
@@ -52,8 +54,7 @@ class dbSession:
             payload = {
                 'data':{
                     'helmetNum': self.helmet_id,
-                    'content': content 
-                    #'sessionID': self.sessionID
+                    'content': impact.jsonify()
                 }
             }
             res = requests.post(f'{self.uri}/hitReg', headers=headers, data=json.dumps(payload))

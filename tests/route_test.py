@@ -1,7 +1,8 @@
 import unittest
 
-from routes import dbSession
 
+from routes import dbSession
+from impact import impact
 class TestDBSessionFlow(unittest.TestCase):
     #default testing helmet ID is 1
     def setUp(self):
@@ -12,13 +13,17 @@ class TestDBSessionFlow(unittest.TestCase):
         result_start = session.start_session()
         self.assertTrue(result_start, "Failed to start session")
 
+        test_impact = impact(
+            x=10,
+            y=10,
+            z=10,
+            gx=10,
+            gy=10,
+            gz=10
+        )
+        
         # Add impact data
-        content = {
-            'x': 10,
-            'y': 10,
-            'z': 10
-        }
-        result_impact = session.add_impact_data(content=content)
+        result_impact = session.add_impact_data(test_impact)
         self.assertTrue(result_impact, "Failed to add impact data")
 
         # End session
@@ -28,13 +33,15 @@ class TestDBSessionFlow(unittest.TestCase):
     def test_impact_no_session(self):
         session = dbSession(self.helmet_id)
 
-        content = {
-            'x': 10,
-            'y': 10,
-            'z': 10
-        }
-
-        result_impact = session.add_impact_data(content=content)
+        test_impact = impact(
+            x=10,
+            y=10,
+            z=10,
+            gx=10,
+            gy=10,
+            gz=10
+        )
+        result_impact = session.add_impact_data(test_impact)
 
         self.assertFalse(result_impact, "Impact data sent with no session")
 

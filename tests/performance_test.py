@@ -8,6 +8,8 @@ import matplotlib.pyplot as plt
 import time
 import random
 
+from impact import impact
+
 def perf_test(spacing, queries):
     '''
     spacing(int) : ms spacing between queries
@@ -24,14 +26,19 @@ def perf_test(spacing, queries):
 
     try:
         for i in range(queries):
-            dummy_data = {
-                'x': random.randint(0, 2000),
-                'y': random.randint(0, 2000),
-                'z': random.randint(0, 2000)
-            }
 
             start = time.time()
-            success += test_session.add_impact_data(dummy_data)
+            test_impact = impact(
+                x=random.randint(0, 2000),
+                y=random.randint(0, 2000),
+                z=random.randint(0, 2000),
+                gx=random.randint(0, 2000),
+                gy=random.randint(0, 2000),
+                gz=random.randint(0, 2000)
+            )
+            success += test_session.add_impact_data(
+                test_impact
+            )
             end = time.time()
 
             req_time.append(end - start)
