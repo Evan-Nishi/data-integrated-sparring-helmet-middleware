@@ -16,20 +16,6 @@ IMPACT_THRESHOLD = 1000 #threshold for abs magnitude to determine an impact
 
 GYRO_THRESHOLD = 250 #threshold for gyroscope to determine if head is rotating in a direction
 
-''' if manually grabbing from features
-import math
-
-CHARACTERISTIC_MASK = "-0001-11e1-ac36-0002a5d5c51b"
-
-
-FEATURE_MASKS = {
-    f"00800000{CHARACTERISTIC_MASK}": "accelerometer",
-    f"00400000{CHARACTERISTIC_MASK}" : "gyroscope",
-    f"00020000{CHARACTERISTIC_MASK}" : "battery"
-}
-
-'''
-
 impact_queue = queue.Queue()
 stop_event = threading.Event()
 
