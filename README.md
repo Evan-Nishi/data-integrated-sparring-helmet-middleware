@@ -1,11 +1,12 @@
 # Middleware V1
+bluetooth.py is in .gitignore as it is not tested fully yet
 
 
 # Setup
 
 ## Create .env 
 
-For the demo use:
+For the demo use (unless mac address has changed):
 ```
 HELMET_ID='1'
 DEVICE_TAG='helm'
@@ -14,14 +15,24 @@ HELMET_MAC_ADDRESS='F7:98:98:AF:AE:A8'
 ROUND_TIME='180'
 ```
 
+optionally you can add to the dotenv, if not it will default to 2000 and 500 respectively
+```
+IMPACT_THRESHOLD='1000'
+GYRO_THRESHOLD='500'
+```
+
+## Run tests
+To run tests in the [tests](./tests/) you must run them as imports.
+
+## Analytics
 
 
 ## Install dependencies
 This project requires the following libraries installed with pip:
 `bluepy, blue-st-sdk, requests, dotenv`
+Either with sudo or in a venv.
 
-
-
+If running either the [performance test](./tests/performance_test.py) or graphing with graph sensor script [analytics](./analytics/graph_sensor.py), also install `matplotlib`.
 
 
 ## Optional: add network to pi
