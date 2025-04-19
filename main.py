@@ -16,15 +16,19 @@ from blue_st_sdk.manager import ManagerListener
 from blue_st_sdk.node import NodeListener
 from blue_st_sdk.feature import FeatureListener
 
+from analytics.graph_sensor import plot_real_time
+
+from analytics.log_sensor import Logger
 
 
 load_dotenv()
 
 HELMET_TAG = os.getenv('HELMET_MAC_ADDRESS')
 
-IMPACT_THRESHOLD = 1000 #threshold for abs magnitude to determine an impact
+JITTER_THRESHOLD = 30
 
-GYRO_THRESHOLD = 250 #threshold for gyroscope to determine if head is rotating in a direction
+IMPACT_THRESHOLD = int(os.getenv('IMPACT_THRESHOLD', 1000)) #threshold for abs magnitude to determine an impact
+GYRO_THRESHOLD = int(os.getenv('GYRO_THRESHOLD', 250)) #threshold for gyroscope to determine if head is rotating in a direction
 
 ''' if manually grabbing from features
 import math
@@ -60,6 +64,12 @@ class AGFeatureListener(FeatureListener):
 
 #for testing only!
 def mock_bluetooth_worker():
+
+    acc_test_logger = Logger('Accelerometer', ['x', 'y', 'z'])
+    gyro_test_logger = Logger('Gyroscope', ['x', 'y', 'z'])
+
+    plot_real_time(is_acc=True)
+    
     for i in range(10):
         if not stop_event.is_set():
             test_impact = impact(
@@ -70,6 +80,8 @@ def mock_bluetooth_worker():
                 gy=random.randint(0, 2000),
                 gz=random.randint(0, 2000)
             )
+            acc_test_logger.log([test_impact.x, test_impact.y, test_impact.z])
+            gyro_test_logger.log([test_impact.gx, test_impact.gy, test_impact.gz])
 
             impact_queue.put(test_impact)
             print("added to queue, m:", test_impact.magnitude)
@@ -162,15 +174,25 @@ def bluetooth_worker():
 
 def controller():
     round_end = time.time() + int(os.getenv("ROUND_TIME"))
+    has_dropped = True
+    prev_mag = 0
     while not stop_event.is_set() and time.time() < round_end:
         try:
             #waits for impact, if no come by timeout end session
-            cur_impact = impact_queue.get(timeout=10)
+            cur_impact = impact_queue.get(timeout=30)
+            
+            if (prev_mag - cur_impact.magnitude) > JITTER_THRESHOLD:
+                has_dropped = True
 
             #if obj meets threshold, send it off to db!
-            if cur_impact.magnitude > IMPACT_THRESHOLD:
+            if cur_impact.magnitude > IMPACT_THRESHOLD and has_dropped:
                 print('yay sent!')
                 helmHandler.add_impact_data(cur_impact)
+
+                #make sure that the object is above threshold AND has dropped since last log to prevent multiple logs of same impact
+                has_dropped = False
+
+            prev_mag = cur_impact.magnitude
         except:
             print('stopping idle controller')
             stop_event.set()
@@ -183,7 +205,7 @@ def controller():
     helmHandler.end_session()
 
 controller_t = threading.Thread(target=controller)
-bt_thread = threading.Thread(target=bluetooth_worker)
+bt_thread = threading.Thread(target=mock_bluetooth_worker)
 
 controller_t.start()
 bt_thread.start()
