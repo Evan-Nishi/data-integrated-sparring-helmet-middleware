@@ -16,9 +16,9 @@ from blue_st_sdk.manager import ManagerListener
 from blue_st_sdk.node import NodeListener
 from blue_st_sdk.feature import FeatureListener
 
-from analytics.graph_sensor import plot_real_time
+#from analytics.graph_sensor import plot_real_time
 
-from analytics.log_sensor import Logger
+#from analytics.log_sensor import Logger
 
 
 load_dotenv()
@@ -65,10 +65,10 @@ class AGFeatureListener(FeatureListener):
 #for testing only!
 def mock_bluetooth_worker():
 
-    acc_test_logger = Logger('Accelerometer', ['x', 'y', 'z'])
-    gyro_test_logger = Logger('Gyroscope', ['x', 'y', 'z'])
+    #acc_test_logger = Logger('Accelerometer', ['x', 'y', 'z'])
+    #gyro_test_logger = Logger('Gyroscope', ['x', 'y', 'z'])
 
-    plot_real_time(is_acc=True)
+    #plot_real_time(is_acc=True)
     
     for i in range(10):
         if not stop_event.is_set():
@@ -80,8 +80,8 @@ def mock_bluetooth_worker():
                 gy=random.randint(0, 2000),
                 gz=random.randint(0, 2000)
             )
-            acc_test_logger.log([test_impact.x, test_impact.y, test_impact.z])
-            gyro_test_logger.log([test_impact.gx, test_impact.gy, test_impact.gz])
+            #acc_test_logger.log([test_impact.x, test_impact.y, test_impact.z])
+            #gyro_test_logger.log([test_impact.gx, test_impact.gy, test_impact.gz])
 
             impact_queue.put(test_impact)
             print("added to queue, m:", test_impact.magnitude)
