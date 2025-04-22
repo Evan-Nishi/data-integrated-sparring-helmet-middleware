@@ -23,7 +23,7 @@ from blue_st_sdk.feature import FeatureListener
 
 load_dotenv()
 
-HELMET_TAG = os.getenv('HELMET_MAC_ADDRESS')
+HELMET_TAG = os.getenv('HELMET_MAC_ADDRESS').lower()
 
 JITTER_THRESHOLD = 30
 
@@ -63,11 +63,23 @@ class AGFeatureListener(FeatureListener):
         self.target_arr[self.target_ind] = sample
 
 class HelmManager(ManagerListener):
+    def __init__(self, target_addr):
+        super().__init__()
+        self.target_addr = target_addr
 
     def on_discovery_change(self, manager, enabled):
         print('Discovery %s.' % ('started' if enabled else 'stopped'))
         if not enabled:
             print()
+
+    def on_node_discovered(self, manager, node):
+        print('New device discovered: %s.' % (node.get_tag()))
+
+        if node.get_tag().lower() == self.target_addr:
+            print("target helm discovered")
+            manager.stop_discovery()
+
+            
 
 #for testing only!
 def mock_bluetooth_worker():
@@ -103,6 +115,7 @@ def bluetooth_worker():
     manager.add_listener(manager_listener)
 
     manager.discover(20)
+    
     discovered = manager.get_nodes()
 
     found = False
@@ -110,8 +123,10 @@ def bluetooth_worker():
 
     if not discovered:
         raise SystemError('error: no devices found')
+    
+    
     for device in discovered:
-        if device.get_tag() == HELMET_TAG:
+        if device.get_tag().lower() == HELMET_TAG:
             print('helmet found!')
             found = True
             helm = device
