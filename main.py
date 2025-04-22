@@ -62,6 +62,13 @@ class AGFeatureListener(FeatureListener):
     def on_update(self, feature, sample):
         self.target_arr[self.target_ind] = sample
 
+class HelmManager(ManagerListener):
+
+    def on_discovery_change(self, manager, enabled):
+        print('Discovery %s.' % ('started' if enabled else 'stopped'))
+        if not enabled:
+            print()
+
 #for testing only!
 def mock_bluetooth_worker():
 
@@ -92,7 +99,7 @@ def mock_bluetooth_worker():
 
 def bluetooth_worker():
     manager = Manager.instance()
-    manager_listener = ManagerListener()
+    manager_listener = HelmManager()
     manager.add_listener(manager_listener)
 
     manager.discover(20)
@@ -205,7 +212,7 @@ def controller():
     helmHandler.end_session()
 
 controller_t = threading.Thread(target=controller)
-bt_thread = threading.Thread(target=mock_bluetooth_worker)
+bt_thread = threading.Thread(target=bluetooth_worker)
 
 controller_t.start()
 bt_thread.start()
