@@ -109,7 +109,6 @@ def mock_bluetooth_worker():
             )
             #acc_test_logger.log([test_impact.x, test_impact.y, test_impact.z])
             #gyro_test_logger.log([test_impact.gx, test_impact.gy, test_impact.gz])
-
             impact_queue.put(test_impact)
             print("added to queue, m:", test_impact.magnitude)
             time.sleep(random.randint(1,4))
@@ -182,10 +181,11 @@ def bluetooth_worker():
 
     while not stop_event.is_set():
         #wait for notification
-        if helm.wait_for_notifications(0.05):
+        if helm.wait_for_notifications(0.5):
             #if recieved check if payload complete
             if curr_impact[0] is not None and curr_impact[1] is not None:
                 #if payload complete, put it in queue to be put to server
+                print("put in queue")
                 impact_queue.put(impact(
                     x=curr_impact[0][0],
                     y=curr_impact[0][1],
@@ -198,6 +198,7 @@ def bluetooth_worker():
                 curr_impact = [None, None]
         
     #cleanup
+    print("removing listener")
     manager.remove_listener(manager_listener)
     
 
@@ -209,7 +210,7 @@ def controller():
     while not stop_event.is_set() and time.time() < round_end:
         try:
             #waits for impact, if no come by timeout end session
-            cur_impact = impact_queue.get(timeout=30)
+            cur_impact = impact_queue.get(timeout=130)
             
             if (prev_mag - cur_impact.magnitude) > JITTER_THRESHOLD:
                 has_dropped = True
