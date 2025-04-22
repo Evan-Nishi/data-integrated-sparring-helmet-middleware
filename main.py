@@ -77,9 +77,17 @@ class HelmManager(ManagerListener):
 
         if node.get_tag().lower() == self.target_addr:
             print("target helm discovered")
-            manager.stop_discovery()
 
-            
+class MyNodeListener(NodeListener):
+    def on_connect(self, node):
+        print('Device %s connected.' % (node.get_name()))
+
+    def on_disconnect(self, node, unexpected=False):
+        print('Device %s disconnected%s.' % \
+            (node.get_name(), ' unexpectedly' if unexpected else ''))
+        if unexpected:
+            # Exiting.
+            print('\nBluetooth device exiting...\n')           
 
 #for testing only!
 def mock_bluetooth_worker():
@@ -111,10 +119,10 @@ def mock_bluetooth_worker():
 
 def bluetooth_worker():
     manager = Manager.instance()
-    manager_listener = HelmManager()
+    manager_listener = HelmManager(HELMET_TAG)
     manager.add_listener(manager_listener)
 
-    manager.discover(20)
+    manager.discover(15)
     
     discovered = manager.get_nodes()
 
@@ -124,7 +132,7 @@ def bluetooth_worker():
     if not discovered:
         raise SystemError('error: no devices found')
     
-    
+
     for device in discovered:
         if device.get_tag().lower() == HELMET_TAG:
             print('helmet found!')
@@ -137,7 +145,7 @@ def bluetooth_worker():
     
     print('connecting to helmet')
 
-    helm_listener = NodeListener()
+    helm_listener = MyNodeListener()
     helm.add_listener(helm_listener)
 
     if not helm.connect():
