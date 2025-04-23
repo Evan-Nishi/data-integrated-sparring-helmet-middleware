@@ -54,15 +54,17 @@ class dbSession:
             payload = {
                 'data':{
                     'helmetNum': self.helmet_id,
-                    'content': impact.jsonify()
+                    'content': (impact.payload_obj())
                 }
             }
+
             res = requests.post(f'{self.uri}/hitReg', headers=headers, data=json.dumps(payload))
 
             if res.status_code == 200:
                 return True
             else:
                 print('data failed to post')
+                print(res.content)
                 return False
         else:
             print('session not active yet')

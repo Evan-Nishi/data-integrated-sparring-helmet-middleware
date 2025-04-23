@@ -27,7 +27,7 @@ HELMET_TAG = os.getenv('HELMET_MAC_ADDRESS').lower()
 
 JITTER_THRESHOLD = 30
 
-IMPACT_THRESHOLD = int(os.getenv('IMPACT_THRESHOLD', 1000)) #threshold for abs magnitude to determine an impact
+IMPACT_THRESHOLD = int(os.getenv('IMPACT_THRESHOLD', 1900)) #threshold for abs magnitude to determine an impact
 GYRO_THRESHOLD = int(os.getenv('GYRO_THRESHOLD', 250)) #threshold for gyroscope to determine if head is rotating in a direction
 
 ''' if manually grabbing from features
@@ -57,10 +57,10 @@ class AGFeatureListener(FeatureListener):
     def __init__(self, target_arr, target_ind):
         super().__init__()
         self.target_arr = target_arr
-        self.ind = target_ind
+        self.target_ind = target_ind
 
     def on_update(self, feature, sample):
-        self.target_arr[self.target_ind] = sample
+        self.target_arr[self.target_ind] = sample._data
 
 class HelmManager(ManagerListener):
     def __init__(self, target_addr):
@@ -87,7 +87,7 @@ class MyNodeListener(NodeListener):
             (node.get_name(), ' unexpectedly' if unexpected else ''))
         if unexpected:
             # Exiting.
-            print('\nBluetooth device exiting...\n')           
+            print('\nBluetooth device exiting...\n')
 
 #for testing only!
 def mock_bluetooth_worker():
@@ -96,7 +96,7 @@ def mock_bluetooth_worker():
     #gyro_test_logger = Logger('Gyroscope', ['x', 'y', 'z'])
 
     #plot_real_time(is_acc=True)
-    
+
     for i in range(10):
         if not stop_event.is_set():
             test_impact = impact(
@@ -122,7 +122,7 @@ def bluetooth_worker():
     manager.add_listener(manager_listener)
 
     manager.discover(15)
-    
+
     discovered = manager.get_nodes()
 
     found = False
@@ -130,7 +130,7 @@ def bluetooth_worker():
 
     if not discovered:
         raise SystemError('error: no devices found')
-    
+
 
     for device in discovered:
         if device.get_tag().lower() == HELMET_TAG:
@@ -141,7 +141,7 @@ def bluetooth_worker():
 
     if not found or helm is None:
         raise SystemError('error: helmet not found')
-    
+
     print('connecting to helmet')
 
     helm_listener = MyNodeListener()
@@ -176,8 +176,11 @@ def bluetooth_worker():
     #first should be for accelerometer, second for gyro
     curr_impact = [None, None]
 
-    gyroscope.add_listener(AGFeatureListener(curr_impact, 0))
+    accelerometer.add_listener(AGFeatureListener(curr_impact, 0))
     gyroscope.add_listener(AGFeatureListener(curr_impact, 1))
+
+    helm.enable_notifications(accelerometer)
+    helm.enable_notifications(gyroscope)
 
     while not stop_event.is_set():
         #wait for notification
@@ -185,7 +188,6 @@ def bluetooth_worker():
             #if recieved check if payload complete
             if curr_impact[0] is not None and curr_impact[1] is not None:
                 #if payload complete, put it in queue to be put to server
-                print("put in queue")
                 impact_queue.put(impact(
                     x=curr_impact[0][0],
                     y=curr_impact[0][1],
@@ -194,43 +196,42 @@ def bluetooth_worker():
                     gy=curr_impact[1][1],
                     gz=curr_impact[1][2]
                 ))
-
-                curr_impact = [None, None]
-        
     #cleanup
     print("removing listener")
     manager.remove_listener(manager_listener)
-    
+
 
 
 def controller():
-    round_end = time.time() + int(os.getenv("ROUND_TIME"))
-    has_dropped = True
-    prev_mag = 0
+    round_end = time.time() + int(os.getenv("ROUND_TIME", 180))
+    has_dropped = False
+    prev_impact = None
     while not stop_event.is_set() and time.time() < round_end:
         try:
             #waits for impact, if no come by timeout end session
             cur_impact = impact_queue.get(timeout=130)
-            
-            if (prev_mag - cur_impact.magnitude) > JITTER_THRESHOLD:
+
+            if prev_impact is not None and (prev_impact.magnitude - cur_impact.magnitude) > JITTER_THRESHOLD:
                 has_dropped = True
 
             #if obj meets threshold, send it off to db!
             if cur_impact.magnitude > IMPACT_THRESHOLD and has_dropped:
                 print('yay sent!')
-                helmHandler.add_impact_data(cur_impact)
+                helmHandler.add_impact_data(prev_impact)
 
                 #make sure that the object is above threshold AND has dropped since last log to prevent multiple logs of same impact
                 has_dropped = False
 
-            prev_mag = cur_impact.magnitude
-        except:
+            prev_impact = cur_impact
+        except Exception as e:
+            print('controller thread Exception:',e)
             print('stopping idle controller')
             stop_event.set()
     print('session ended')
-    
+
     #make sure to signal stop
     if not stop_event.is_set():
+        print('controller killed thread')
         stop_event.set()
 
     helmHandler.end_session()

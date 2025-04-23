@@ -12,7 +12,7 @@ class impact:
 
         self.magnitude = (math.sqrt(self.x**2 + self.y**2 + self.z**2))
 
-    def jsonify(self):
+    def payload_obj(self):
         payload = {
             'x': self.x,
             'y': self.y,
@@ -21,4 +21,4 @@ class impact:
             'gy': self.gy,
             'gz': self.gz,
         }
-        return json.dumps(payload)
+        return payload
