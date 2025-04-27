@@ -196,6 +196,8 @@ def bluetooth_worker():
                     gy=curr_impact[1][1],
                     gz=curr_impact[1][2]
                 ))
+                curr_impact[0] = None
+                curr_impact[1] = None
     #cleanup
     print("removing listener")
     manager.remove_listener(manager_listener)
@@ -206,35 +208,38 @@ def controller():
     round_end = time.time() + int(os.getenv("ROUND_TIME", 180))
     has_dropped = False
     prev_impact = None
+    prev_prev_impact = None
+
     while not stop_event.is_set() and time.time() < round_end:
         try:
-            #waits for impact, if no come by timeout end session
             cur_impact = impact_queue.get(timeout=130)
 
             if prev_impact is not None and (prev_impact.magnitude - cur_impact.magnitude) > JITTER_THRESHOLD:
                 has_dropped = True
 
-            #if obj meets threshold, send it off to db!
-            if cur_impact.magnitude > IMPACT_THRESHOLD and has_dropped:
-                print('yay sent!')
-                helmHandler.add_impact_data(prev_impact)
+            if prev_prev_impact is not None and prev_impact is not None:
+                if prev_impact.magnitude > prev_prev_impact.magnitude and prev_impact.magnitude > cur_impact.magnitude:
+                    if prev_impact.magnitude > IMPACT_THRESHOLD and has_dropped:
+                        print('yay sent (peak detected)!')
+                        helmHandler.add_impact_data(prev_impact)
+                        has_dropped = False
 
-                #make sure that the object is above threshold AND has dropped since last log to prevent multiple logs of same impact
-                has_dropped = False
-
+            prev_prev_impact = prev_impact
             prev_impact = cur_impact
+
         except Exception as e:
-            print('controller thread Exception:',e)
+            print('controller thread Exception:', e)
             print('stopping idle controller')
             stop_event.set()
+
     print('session ended')
 
-    #make sure to signal stop
     if not stop_event.is_set():
         print('controller killed thread')
         stop_event.set()
 
     helmHandler.end_session()
+
 
 controller_t = threading.Thread(target=controller)
 bt_thread = threading.Thread(target=bluetooth_worker)
