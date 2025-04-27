@@ -26,7 +26,7 @@ load_dotenv()
 HELMET_TAG = os.getenv('HELMET_MAC_ADDRESS').lower()
 
 JITTER_THRESHOLD = 30
-
+HIT_COOLDOWN_MS = 100
 IMPACT_THRESHOLD = int(os.getenv('IMPACT_THRESHOLD', 1900)) #threshold for abs magnitude to determine an impact
 GYRO_THRESHOLD = int(os.getenv('GYRO_THRESHOLD', 250)) #threshold for gyroscope to determine if head is rotating in a direction
 
@@ -210,19 +210,29 @@ def controller():
     prev_impact = None
     prev_prev_impact = None
 
+    prev_logged_hit = 0
+
     while not stop_event.is_set() and time.time() < round_end:
         try:
             cur_impact = impact_queue.get(timeout=130)
 
+            last_hit = 0
+
             if prev_impact is not None and (prev_impact.magnitude - cur_impact.magnitude) > JITTER_THRESHOLD:
                 has_dropped = True
 
+
+            
+
             if prev_prev_impact is not None and prev_impact is not None:
                 if prev_impact.magnitude > prev_prev_impact.magnitude and prev_impact.magnitude > cur_impact.magnitude:
-                    if prev_impact.magnitude > IMPACT_THRESHOLD and has_dropped:
+                    curr = time.time_ns()
+                    elapsed_ms = (curr - last_hit) / 1_000_000
+                    if prev_impact.magnitude > IMPACT_THRESHOLD and has_dropped and elapsed_ms > HIT_COOLDOWN_MS:
                         print('yay sent (peak detected)!')
                         helmHandler.add_impact_data(prev_impact)
                         has_dropped = False
+                        last_hit = curr
 
             prev_prev_impact = prev_impact
             prev_impact = cur_impact
