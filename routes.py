@@ -3,18 +3,24 @@ import json
 from dotenv import load_dotenv
 import os
 from impact import impact
-
+from tensorflow.keras.models import load_model
+import numpy as np
 
 load_dotenv()
 
 class dbSession:
-    def __init__(self, helmet_id=None):
+    def __init__(self, helmet_id=None, predict=True):
         load_dotenv()
         if (helmet_id is None):
             self.helmet_id = int(os.getenv("HELMET_ID"))
         else:
             self.helmet_id = helmet_id
 
+        if (predict):
+            with open('label_map.json', 'r') as f:
+                self.label_map = json.load(f)
+            self.hit_model = load_model('hit_classifier_model.keras')
+        
         self.uri = os.getenv("BASE_URI")
         
         self.session_active = False
@@ -48,15 +54,21 @@ class dbSession:
         if headers is None: 
             headers = self.defaultHeaders
 
+        input_data = np.array([[impact.x, impact.y, impact.z, impact.gx, impact.gy, impact.gz]])
+        input_data = input_data.astype('float32')
+
+        prediction = self.hit_model.predict(input_data)
+        predicted_class = np.argmax(prediction, axis=1)
+
         if self.session_active == True:
-
-
             payload = {
                 'data':{
                     'helmetNum': self.helmet_id,
-                    'content': (impact.payload_obj())
+                    'content': (impact.payload_obj()),
+                    'type': self.label_map[str(predicted_class[0])]
                 }
             }
+            print("predicted:",self.label_map[str(predicted_class[0])])
 
             res = requests.post(f'{self.uri}/hitReg', headers=headers, data=json.dumps(payload))
 
